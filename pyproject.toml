@@ -1,15 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "django-scb-auth"
-version = "1.1.0"
-description = "Application de gestion"
+version = "1.1.1"
+description = "Application de gestion d'authentification avec system de OTP"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+    {name = "Cédric Hervé Youan"}
+]
 dependencies = [
     "django>=6.0.4",
-    "django-filter", 
+    "django-filter",
     "djangorestframework",
     "djangorestframework-simplejwt",
     "drf-spectacular",
     "drf-spectacular-sidecar",
     "pyotp>=2.9.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scb_auth*"] # Assure l'inclusion de votre dossier applicatif
