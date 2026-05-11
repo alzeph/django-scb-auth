@@ -6,6 +6,7 @@ from scb_auth.models import  Group, User
 from django_factory_all import ModelFactory
 from scb_auth.utils import login_user_in_test
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
+from scb_auth.conf import scb_config
 
 User = get_user_model()
 
@@ -13,8 +14,10 @@ class AuthsTestCase(TestCase):
     def setUp(self):
         self.factory = ModelFactory(max_depth=7, create_m2m=True)
         kwargs_user = self.factory.build_create_kwargs(User)
-        kwargs_user.pop('phone_number')
-        self.user = User.objects.create(phone_number='+22500000000', **kwargs_user)
+        self.username_field = scb_config.get_username_field()
+        kwargs_user['email'] = 'admin@testadmins.com'
+        kwargs_user['phone_number'] = '+225000000001'
+        self.user = User.objects.create( **kwargs_user)
         self.client = login_user_in_test(self.user)
         
     # test group 
@@ -56,7 +59,7 @@ class AuthsTestCase(TestCase):
     
     def test_create_user_success(self):
         url = reverse('scb_auth:users-list')
-        response = self.client.post(url, {"phone_number": "+22500000034", "password": "1234"}, format='json')
+        response = self.client.post(url, {"phone_number": "+22500000034", "email": "tesnewe@test.com", "password": "1234"}, format='json')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(type(response.data), ReturnDict)
     
@@ -94,7 +97,7 @@ class AuthsTestCase(TestCase):
         url = reverse('scb_auth:users-list')
         response = client.get(url, format='json')
         self.assertEqual(response.status_code, 401)
-        
+    
     def test_retrieve_user_success(self):
         url = reverse('scb_auth:users-detail', kwargs={'pk': self.user.pk})
         response = self.client.get(url, format='json')
@@ -114,8 +117,8 @@ class AuthsTestCase(TestCase):
         
     def test_delete_user_sucess(self):
         kwargs_user = self.factory.build_create_kwargs(User)
-        kwargs_user.pop('phone_number')
-        user = User.objects.create(phone_number='+225000000023', **kwargs_user)
+        kwargs_user[self.username_field] = '+225000000023' if self.username_field == 'phone_number' else 'admin@testdelete.com'
+        user = User.objects.create(**kwargs_user)
         url = reverse('scb_auth:users-detail', kwargs={'pk': user.pk})
         response = self.client.delete(url, format='json')
         self.assertEqual(response.status_code, 204)
@@ -186,15 +189,15 @@ class AuthsTestCase(TestCase):
       
     def test_login_success(self):
         kwargs_user = self.factory.build_create_kwargs(User)
-        kwargs_user.pop('phone_number')
-        user = User.objects.create(phone_number='+225000000023', **kwargs_user)
+        kwargs_user[self.username_field] = '+225000000023' if self.username_field == 'phone_number' else 'admin@testdelete.com'
+        user = User.objects.create(**kwargs_user)
         user.set_password('qwerty123')
         user.save()
         user.refresh_from_db()
         url = reverse('scb_auth:users-login')
-        response_otp = self.client.post(reverse('scb_auth:users-obtain-otp'), {'username': user.phone_number}, format='json')
+        response_otp = self.client.post(reverse('scb_auth:users-obtain-otp'), {'username': getattr(user, 'email', None)}, format='json')
         self.assertEqual(response_otp.status_code, 200)
-        response = self.client.post(url, {'username': user.phone_number, 'code': '123456'}, format='json')
+        response = self.client.post(url, {'username': getattr(user, self.username_field, None), 'code': '123456'}, format='json')
         self.assertEqual(response.status_code, 401)
     
     def test_login_failure_data_not_found(self):
@@ -204,13 +207,13 @@ class AuthsTestCase(TestCase):
         
     def test_login_failure_data_partial(self):
         kwargs_user = self.factory.build_create_kwargs(User)
-        kwargs_user.pop('phone_number')
-        user = User.objects.create(phone_number='+225000000023', **kwargs_user)
+        kwargs_user[self.username_field] = '+225000000023' if self.username_field == 'phone_number' else 'admin@testdelete.com'
+        user = User.objects.create(**kwargs_user)
         user.set_password('qwerty123')
         user.save()
         user.refresh_from_db()
         url = reverse('scb_auth:users-login')
-        response = self.client.post(url, {'phone_number': '+225000000023'}, format='json')
+        response = self.client.post(url, {self.username_field: getattr(user, self.username_field, None)}, format='json')
         self.assertEqual(response.status_code, 400)
     
     def test_logout_success(self):
@@ -237,4 +240,5 @@ class AuthsTestCase(TestCase):
         self.assertEqual(type(response.data), dict)
         self.assertTrue('access' in response.data)
         self.assertTrue('refresh' in response.data)
+    
     
