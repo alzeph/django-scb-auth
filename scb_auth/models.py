@@ -168,7 +168,7 @@ class User(*_build_user_bases()):
     )
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name=_("Date d'inscription"))
     objects = UserManager()
-    USERNAME_FIELD  = username_field
+    USERNAME_FIELD  = "phone_number"
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
 
