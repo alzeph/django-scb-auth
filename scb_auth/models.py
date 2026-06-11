@@ -250,6 +250,7 @@ if _use_otp and _otp_enabled:
             verbose_name=_("Utilisateur"),
         )
         token      = models.CharField(max_length=255, verbose_name=_("Token haché"))
+        otp_code = models.CharField(max_length=255, null=True, blank=True, verbose_name=_("Code OTP"))
         created_at = models.DateTimeField(auto_now_add=True)
         updated_at = models.DateTimeField(auto_now=True)
 
@@ -274,8 +275,15 @@ if _use_otp and _otp_enabled:
             totp = pyotp.TOTP(self.user.otp_secret, digits=nb_digits)
             code = totp.now()
             self.token = make_password(code)
+            self.otp_code = code
             self.save()
             return code
+        
+        def get_secure_otp_code(self) -> str:
+            otp_code =  self.otp_code
+            self.otp_code = None
+            self.save(update_fields=["otp_code"])
+            return otp_code
 
         def verify_otp(self, code: str) -> bool:
             """
