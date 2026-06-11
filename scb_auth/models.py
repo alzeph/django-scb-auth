@@ -279,7 +279,8 @@ if _use_otp and _otp_enabled:
             self.save()
             return code
         
-        def get_secure_otp_code(self) -> str:
+        @property
+        def secure_otp_code(self) -> str:
             otp_code =  self.otp_code
             self.otp_code = None
             self.save(update_fields=["otp_code"])
